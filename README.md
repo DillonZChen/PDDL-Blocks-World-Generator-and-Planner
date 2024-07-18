@@ -1,3 +1,9 @@
+The original code for this repository can be found [here](https://gitlab.com/thiebaux/blocks-world-generator-and-planner). This repository adds some helpful PDDL functionality including
+- randomly generate Blocksworld problems in the form of PDDL files
+- parse a Blocksworld PDDL problem and return an optimal plan
+
+---
+
 # Blocks World Generator and Planner
 
 ## Description

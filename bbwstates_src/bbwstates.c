@@ -39,6 +39,8 @@
 *    -v <integer>     verbosity
 *                     -1 = states, 0 = average, 1 = plan lengths,
 *                     2 = states and plan lengths, 3 = plans.
+*    -i <string>      input problem file. if specified, will ignore problem
+*                     generation and instead solve the input optimally
 *
 * The "random" numbers are supplied by the C library function drand48().
 */
@@ -68,6 +70,7 @@ char *argv[];
   int verb;             /* How much of results to print */
   int (*solver)();      /* Function called according to alg */
   char format[10];      /* PDDL or PLAIN output */
+  char input[1000];     /* Input file name */
 
   P = 1;                                          /* Default */
   N = 0;                                          /* Default */
@@ -75,8 +78,9 @@ char *argv[];
   alg = -1;                                       /* Default */
   verb = -1;                                      /* Default */
   strcpy(format,"PLAIN");                         /* Default */
+  strcpy(input,"");                               /* Default */
   get_options(argc,argv,
-	      &N,&P,&seed,&alg,&verb,format);     /* Read command line */
+	      &N,&P,&seed,&alg,&verb,format,input);   /* Read command line */
   srand48(seed);                                  /* Initialise drand48() */
   ratio = make_ratio(N);                          /* Get probabilities */
   sigma_i = get_state(N);                         /* Mallocs */
@@ -97,6 +101,81 @@ char *argv[];
     break;
   default:
     solver = 0;
+  }
+
+  // Solve input problem if specified
+  if (strlen(input) > 0) {
+    FILE *file;
+    
+    int n, i;
+
+    // Open the file in read mode
+    file = fopen(input, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return EXIT_FAILURE;
+    }
+
+    // Read the first number (n)
+    if (fscanf(file, "%d", &n) != 1) {
+        perror("Error reading n");
+        fclose(file);
+        return EXIT_FAILURE;
+    }
+
+    // Allocate memory for the two lists
+    int *list1 = (int *)malloc(n * sizeof(int));
+    int *list2 = (int *)malloc(n * sizeof(int));
+    if (list1 == NULL || list2 == NULL) {
+        perror("Error allocating memory");
+        fclose(file);
+        return EXIT_FAILURE;
+    }
+
+    // Read the first list of n numbers
+    for (i = 0; i < n; i++) {
+        if (fscanf(file, "%d", &list1[i]) != 1) {
+            perror("Error reading list1");
+            free(list1);
+            free(list2);
+            fclose(file);
+            return EXIT_FAILURE;
+        }
+    }
+
+    // Read the second list of n numbers
+    for (i = 0; i < n; i++) {
+        if (fscanf(file, "%d", &list2[i]) != 1) {
+            perror("Error reading list2");
+            free(list1);
+            free(list2);
+            fclose(file);
+            return EXIT_FAILURE;
+        }
+    }
+
+    // // Print lists
+    // printf("n = %d\n", n);
+    // printf("List 1: ");
+    // for (i = 0; i < n; i++) {
+    //     printf("%d ", list1[i]);
+    // }
+    // printf("\n");
+
+    // printf("List 2: ");
+    // for (i = 0; i < n; i++) {
+    //     printf("%d ", list2[i]);
+    // }
+    // printf("\n");
+
+    n = OPTlength(list1, list2, n, verb);
+    printf("%d", n);  // print opt plan length
+
+    free(list1);
+    free(list2);
+    fclose(file);
+    free(theresults);
+    return 0;
   }
 
   for (x=0; x<P; x++) {                                   /* Loop S times */
@@ -139,13 +218,13 @@ char *argv[];
 
 void get_options(int argc, char *argv[],
 		 int *size, int *nprob, long *seed, int *alg, int *verb,
-		 char *format)
+		 char *format, char *input)
 {
   int option;
   extern char *optarg;
   int i;
 
-  while ((option = getopt (argc, argv, "n:r:o:p:a:v:")) != -1)
+  while ((option = getopt (argc, argv, "n:r:o:p:a:v:i:")) != -1)
     switch( option ) {
     case 'n':
       sscanf(optarg,"%d",size);
@@ -164,6 +243,9 @@ void get_options(int argc, char *argv[],
       break;
     case 'v':
       sscanf(optarg,"%d",verb);
+      break;
+    case 'i':
+      strcpy(input,optarg);
       break;
     }
   if (*size<0) {

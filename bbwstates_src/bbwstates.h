@@ -31,7 +31,7 @@ state get_state(int n);
 void free_state(state sigma);
 void get_options(int argc, char *argv[],
 		 int *size, int *nprob, long *seed, int *alg, int *verb,
-		 char *format);
+		 char *format, char *input);
 double* make_ratio(int N);
 void make_state(state sigma, double ratio[]);
 void print_state(state sigma);
